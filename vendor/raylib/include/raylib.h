@@ -208,6 +208,7 @@ typedef struct Vector2 {
 
 // Vector3, 3 components
 typedef struct Vector3 {
+
     float x;                // Vector x component
     float y;                // Vector y component
     float z;                // Vector z component

@@ -1,0 +1,23 @@
+Версия MSBuild 18.8.2+ce25c0108 для .NET Framework
+
+C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Microsoft\VC\v180\Microsoft.CppBuild.targets(551,5): warning MSB8028: промежуточный каталог (C:\Users\vlade\source\repos\raylib_imgui_3d_snake\obj\Debug\) содержит файлы, которые используются совместно с другим проектом (RaylibImGui3DSnake.vcxproj).  Это может привести к ошибкам очистки и перестроения. [C:\Users\vlade\source\repos\raylib_imgui_3d_snake\RaylibImGui3DSnake.vcxproj]
+  CMap.cpp
+  CEntityList.cpp
+C:\Users\vlade\source\repos\raylib_imgui_3d_snake\features\map\CMap.cpp(6,1): error C2059: синтаксическая ошибка: } [C:\Users\vlade\source\repos\raylib_imgui_3d_snake\RaylibImGui3DSnake.vcxproj]
+C:\Users\vlade\source\repos\raylib_imgui_3d_snake\features\map\CMap.cpp(6,1): error C2143: синтаксическая ошибка: отсутствие ";" перед "}" [C:\Users\vlade\source\repos\raylib_imgui_3d_snake\RaylibImGui3DSnake.vcxproj]
+C:\Users\vlade\source\repos\raylib_imgui_3d_snake\features\map\CMap.cpp(9,1): error C2143: синтаксическая ошибка: отсутствие ";" перед "{" [C:\Users\vlade\source\repos\raylib_imgui_3d_snake\RaylibImGui3DSnake.vcxproj]
+C:\Users\vlade\source\repos\raylib_imgui_3d_snake\features\map\CMap.cpp(9,1): error C2447: {: отсутствует заголовок функции (возможно, используется формальный список старого типа) [C:\Users\vlade\source\repos\raylib_imgui_3d_snake\RaylibImGui3DSnake.vcxproj]
+  CMovement.cpp
+  CVHSEffect.cpp
+  CMenu.cpp
+  CPlayer.cpp
+  CEntity.cpp
+  CPhysics.cpp
+  main.cpp
+  imgui.cpp
+  imgui_demo.cpp
+  imgui_draw.cpp
+  imgui_tables.cpp
+  imgui_widgets.cpp
+  rlImGui.cpp
+  Создание кода...

@@ -1,0 +1,6 @@
+newmtl FLOOR_PART
+Kd 1.0 1.0 1.0
+newmtl WHITE_PART
+Kd 1.0 1.0 1.0
+newmtl GREEN_PART
+Kd 1.0 1.0 1.0
