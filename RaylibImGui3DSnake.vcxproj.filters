@@ -44,9 +44,11 @@
     <ClInclude Include="features\vhs\CVHSEffect.h" />
     <ClInclude Include="features\entity\bot\CBot.h" />
     <ClInclude Include="utils\raytrace\CRayTrace.h" />
+    <ClInclude Include="utils\CRenderUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="features\soundsystem\CSoundSystem.cpp" />
+    <ClCompile Include="utils\CRenderUtils.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="vendor\imgui\imgui.cpp">
       <Filter>vendor\imgui</Filter>

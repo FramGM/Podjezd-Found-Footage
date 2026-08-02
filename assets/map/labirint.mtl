@@ -1,7 +1,0 @@
-newmtl Material.001
-Kd 1 1 1
-map_Kd labirint_Material.001_BaseColor.png
-
-newmtl Material.002
-Kd 1 1 1
-map_Kd labirint_Material.002_BaseColor.png

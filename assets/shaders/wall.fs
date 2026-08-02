@@ -7,6 +7,11 @@ in vec3 fragPos;
 uniform sampler2D texture0; // Green wall texture (seamless)
 uniform sampler2D texture1; // White wall texture (seamless)
 
+#define MAX_LIGHTS 16
+uniform int lightsCount;
+uniform vec3 lightsPos[MAX_LIGHTS];
+uniform vec3 lightsColor[MAX_LIGHTS];
+
 out vec4 finalColor;
 
 void main()

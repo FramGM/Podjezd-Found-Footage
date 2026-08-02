@@ -12,6 +12,7 @@
 #include "features/soundsystem/CSoundSystem.h"
 #include "features/entitylist/CEntityList.h"
 #include "features/entity/bot/CBot.h"
+#include "UI/menu/CMenu.h"
 
 int main(void) 
 {
@@ -19,12 +20,16 @@ int main(void)
 	const int screenHeight = 768;
 
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
-	InitWindow(screenWidth, screenHeight, "BACKROOMS: Soviet main entrance");
+	InitWindow(screenWidth, screenHeight, "Podjezd: Found Footage");
 
 	// Инициализация звуковой системы
 	g_pSoundSystem->Init();
 
-	rlImGuiSetup(true);
+	rlImGuiBeginInitImGui();
+	ImGuiIO& io = ImGui::GetIO();
+	ImFont* pIntroFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\arial.ttf", 24.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
+	g_pMenu->SetFont(pIntroFont);
+	rlImGuiEndInitImGui();
 
 	g_pVHSEffect->Init(screenWidth, screenHeight);
 
@@ -34,100 +39,129 @@ int main(void)
 	g_pMap->Init();
 	CPlayer* pPlayer = new CPlayer(g_pMap->GetSpawnPosition(), { 0, PI / 2.0f, 0 });
 	CBot* pBot = new CBot(g_pMap->GetMapCenter());
+	pBot->Init();
 
 	g_pEntityList.get()->AddEntity(pPlayer);
 	g_pEntityList.get()->AddEntity(pBot);
 
-	bool isFPSMode = true;
-	DisableCursor(); // Блокирует курсор в центре экрана и прячет его
-	while (!WindowShouldClose())
+	bool isFPSMode = false;
+	bool wasGameStarted = false;
+	while (!WindowShouldClose() && !g_pMenu->ShouldExitGame())
 	{
-		// Обновление аудио потоков
-		g_pSoundSystem->Update();
-
-		if (!g_pSoundSystem->IsActionSoundPlaying("white_noise"))
-			g_pSoundSystem->PlayActionSound("white_noise");
-		if (!g_pSoundSystem->IsActionSoundPlaying("cosmic_noise"))
-			g_pSoundSystem->PlayActionSound("cosmic_noise");
-
-
-		// Переключение режима (Игра / Интерфейс)
-		if (IsKeyPressed(KEY_TAB)) {
-			isFPSMode = !isFPSMode;
-			if (isFPSMode) {
-				DisableCursor(); // Снова прячем и фиксируем
+		if (IsKeyReleased(KEY_F11)) {
+			int monitor = GetCurrentMonitor();
+			if (IsWindowFullscreen()) {
+				ToggleFullscreen();
+				SetWindowSize(screenWidth, screenHeight);
 			}
 			else {
-				EnableCursor();  // Показываем для кликов по ImGui
+				SetWindowSize(GetMonitorWidth(monitor), GetMonitorHeight(monitor));
+				ToggleFullscreen();
 			}
 		}
 
-		if (IsKeyPressed(KEY_T)) {
-			g_pMap->m_bSwapTextures = !g_pMap->m_bSwapTextures;
+		bool gameStarted = g_pMenu->CanStartGame();
+		if (gameStarted && !wasGameStarted) {
+			wasGameStarted = true;
+			isFPSMode = true;
+			DisableCursor();
 		}
 
-		if (isFPSMode)
+		if (gameStarted)
 		{
-			g_pMovement.get()->OnRun(pPlayer, isFPSMode);
-			g_pPhysics.get()->OnRun();
-			pPlayer->UpdateCamera();
-			pBot->Update(g_pMovement.get()->GetCurrentFrameTime(), pPlayer);
-		}
-		// Обновление камеры к позиции игрока
+			// Обновление аудио потоков
+			g_pSoundSystem->Update();
 
+			if (!g_pSoundSystem->IsActionSoundPlaying("white_noise"))
+				g_pSoundSystem->PlayActionSound("white_noise");
+			if (!g_pSoundSystem->IsActionSoundPlaying("cosmic_noise"))
+				g_pSoundSystem->PlayActionSound("cosmic_noise");
+
+#ifdef DEBUG
+			// Переключение режима (Игра / Интерфейс)
+			if (IsKeyPressed(KEY_TAB)) {
+				isFPSMode = !isFPSMode;
+				if (isFPSMode) {
+					DisableCursor(); // Снова прячем и фиксируем
+				}
+				else {
+					EnableCursor();  // Показываем для кликов по ImGui
+				}
+			}
+
+			if (IsKeyPressed(KEY_T)) {
+				g_pMap->m_bSwapTextures = !g_pMap->m_bSwapTextures;
+			}
+#endif // DEBUG
+
+			if (isFPSMode)
+			{
+				g_pMovement.get()->OnRun(pPlayer, isFPSMode);
+				g_pPhysics.get()->OnRun();
+				pPlayer->UpdateCamera();
+				pBot->Update(g_pMovement.get()->GetCurrentFrameTime(), pPlayer);
+				// Check win condition
+				if (g_pMap->HasReachedExit(pPlayer->GetEntityPos())) {
+					g_pMenu->SetGameWon(true);
+					gameStarted = false;
+					isFPSMode = false;
+					EnableCursor();
+					
+					// Full reset for next game
+					pPlayer->SetEntityPos(g_pMap->GetSpawnPosition());
+					pPlayer->SetVelocity({0, 0, 0});
+					pPlayer->SetViewAngles({0, PI / 2.0f, 0});
+					pPlayer->UpdateCamera();
+					
+					pBot->SetEntityPos({-15.0f, -1.35f, 27.0f});
+					pBot->SetVelocity({0, 0, 0});
+				}
+
+				// Check bot collision
+				Vector3 pPos = pPlayer->GetEntityPos();
+				if (Vector3Distance(pPos, pBot->GetEntityPos()) < 1.0f) {
+					g_pMenu->SetGameOver(true); // Die
+					isFPSMode = false;
+					EnableCursor();
+
+					pPlayer->SetEntityPos(g_pMap->GetSpawnPosition());
+					pPlayer->SetVelocity({0, 0, 0});
+					pPlayer->SetViewAngles({0, PI / 2.0f, 0});
+					pPlayer->UpdateCamera();
+					
+					pBot->SetEntityPos({-15.0f, -1.35f, 27.0f});
+					pBot->SetVelocity({0, 0, 0});
+				}
+			}
+
+			// --- ОТРИСОВКА ---
+			g_pVHSEffect->BeginRender();
+
+			BeginMode3D(pPlayer->GetCamera());
+
+			pBot->Draw(pPlayer->GetCamera());
+			pPlayer->DoSound();
+			g_pMap->DrawMap();
+			EndMode3D();
+
+			g_pVHSEffect->EndRender();
+		}
 
 		if (IsWindowResized())
 			g_pVHSEffect->Resize(GetScreenWidth(), GetScreenHeight());
 
-		// --- ОТРИСОВКА ---
-		g_pVHSEffect->BeginRender();
-
-		BeginMode3D(pPlayer->GetCamera());
-
-		pBot->Draw();
-		pPlayer->DoSound();
-		g_pMap->DrawMap();
-		EndMode3D();
-
-		g_pVHSEffect->EndRender();
-
 		BeginDrawing();
 		ClearBackground(BLACK);
-		g_pVHSEffect->RenderToScreen(pPlayer->m_bFlashlightOn);
-		g_pVHSEffect->RenderFoundFootageHUD(isFPSMode, pPlayer->m_bFlashlightOn);
+		
+		if (g_pMenu->CanStartGame()) {
+			g_pVHSEffect->RenderToScreen(pPlayer->m_bFlashlightOn);
+			g_pVHSEffect->RenderFoundFootageHUD(isFPSMode, pPlayer->m_bFlashlightOn);
+		}
 
 		// --- IMGUI ИНТЕРФЕЙС ---
 		rlImGuiBegin();
 		{
-			ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);
-			ImGui::Begin("First Person Controller HUD", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-			{
-				ImGui::Text("Controls:");
-				ImGui::Text("WASD - Move | SPACE - Jump | SHIFT - Sprint");
-				ImGui::Text("TAB - %s", isFPSMode ? "Show Cursor (Pause)" : "Hide Cursor (Play)");
-
-				ImGui::Separator();
-				ImGui::Text("Player Angles:");
-				ImGui::Text("Pitch: %.1f deg", pPlayer->GetViewAngles().x * RAD2DEG);
-				ImGui::Text("Yaw:   %.1f deg", pPlayer->GetViewAngles().y * RAD2DEG);
-
-				ImGui::Separator();
-				ImGui::Text("Player State:");
-				ImGui::Text("Speed: %.1f", Vector3Length({ pPlayer->GetVelocity().x, 0, pPlayer->GetVelocity().z }));
-				ImGui::Text("Grounded: %s", pPlayer->IsGrounded() ? "YES" : "NO");
-				
-				ImGui::Separator();
-				ImGui::Text("Settings:");
-				ImGui::Checkbox("Enable Post-Processing", &g_pVHSEffect->m_bEnableVHS);
-				if (g_pVHSEffect->m_bEnableVHS) {
-					ImGui::Checkbox("Enable VHS Tape Effects", &g_pVHSEffect->m_bEnableVHSTapeEffects);
-					if (g_pVHSEffect->m_bEnableVHSTapeEffects) {
-						ImGui::SliderFloat("VHS Intensity", &g_pVHSEffect->m_flVHSIntensity, 0.0f, 3.0f);
-					}
-					ImGui::SliderFloat("Dither Intensity", &g_pVHSEffect->m_flDitherIntensity, 0.0f, 3.0f);
-				}
-			}
-			ImGui::End();
+			g_pMenu->Init(isFPSMode, pPlayer);
 		}
 		rlImGuiEnd();
 

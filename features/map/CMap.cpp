@@ -133,6 +133,11 @@ void CMap::Init()
         std::string fsPath = "assets/shaders/wall.fs";
         m_shdWall = LoadShader(vsPath.c_str(), fsPath.c_str());
 
+        m_shdFlat = LoadShader("assets/shaders/wall.vs", "assets/shaders/flat.fs");
+        
+        m_mdlFloor.materials[0].shader = m_shdFlat;
+        m_mdlCeiling.materials[0].shader = m_shdFlat;
+
         // Get shader locations
         int locTex0 = GetShaderLocation(m_shdWall, "texture0");
         int locTex1 = GetShaderLocation(m_shdWall, "texture1");
@@ -360,7 +365,7 @@ void CMap::DrawModelTiledFloor(Model model, Box b, float targetY) {
 void CMap::DrawMap() {
     if (m_mdlMaze.meshCount > 0) {
         // Textures are assigned in Init() with correct material indices.
-        // No per-frame texture override needed.
+        // The shader uses fragPos.y to sample texture0 (green) or texture1 (white)     // No per-frame texture override needed.
 
         // 1. Draw 3D Artist Maze Walls
         DrawModel(m_mdlMaze, { 0.0f, 0.0f, 0.0f }, 1.0f, WHITE);
@@ -368,8 +373,12 @@ void CMap::DrawMap() {
         // 2. Draw Floor Plane (at Y = -1.35f)
         DrawModel(m_mdlFloor, { 0.0f, -1.45f, 0.0f }, 1.0f, WHITE);
 
-        // 3. Draw Ceiling Plane (at Y = +1.35f)
-        DrawModel(m_mdlCeiling, { 0.0f, 1.45f, 0.0f }, 1.0f, WHITE);
+        // 3. Draw Ceiling Plane (at Y = +1.45f), rotated 180 on X so normals face DOWN
+        DrawModelEx(m_mdlCeiling, { 0.0f, 1.45f, 0.0f }, { 1.0f, 0.0f, 0.0f }, 180.0f, { 1.0f, 1.0f, 1.0f }, WHITE);
+        
+        // 4. Draw Exit Portal
+        DrawCube(m_vecExitPos, 1.5f, 2.0f, 1.5f, Color{100, 255, 100, 255}); // Glowing green door
+        DrawCubeWires(m_vecExitPos, 1.55f, 2.05f, 1.55f, WHITE);
     } else {
         if (m_mdlWall.materialCount >= 2) {
             if (m_bSwapTextures) {

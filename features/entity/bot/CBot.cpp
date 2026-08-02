@@ -1,28 +1,21 @@
 #include "CBot.h"
 #include "../../../utils/raytrace/CRayTrace.h"
 #include "../../soundsystem/CSoundSystem.h"
-
 void CBot::Update(float flDeltaTime, CPlayer* pPlayer)
 {
 	m_pTarget = pPlayer;
-	
 	UpdateTargeting(flDeltaTime);
 	UpdateMovement(flDeltaTime);
 }
-
 void CBot::UpdateTargeting(float flDeltaTime)
 {
 	if (!m_pTarget) return;
-
 	if (m_pTarget->m_State.CheckState(STATE_RUN))
 		m_flVisionRadius = BOT_RANGE_EXTENDED;
 	else
 		m_flVisionRadius = BOT_RANGE_DEFAULT;
-
 	float dist = Vector3Distance(GetEntityPos(), m_pTarget->GetEntityPos());
-
 	UpdateSounds(flDeltaTime, dist);
-
 	if (dist <= m_flVisionRadius)
 	{
 		bool canSee = CRayTrace::CheckLineOfSight(GetEntityPos(), m_pTarget->GetEntityPos());
@@ -30,7 +23,6 @@ void CBot::UpdateTargeting(float flDeltaTime)
 		{
 			if (!g_pSoundSystem.get()->IsActionSoundPlaying("scream"))
 				g_pSoundSystem.get()->PlayActionSound("scream");
-
 			m_State = BOT_HUNTING;
 			m_flSpeed = 3.6f;
 		}
@@ -52,17 +44,14 @@ void CBot::UpdateTargeting(float flDeltaTime)
 		}
 	}
 }
-
 void CBot::UpdateSounds(float flDeltaTime, float dist)
 {
 	float maxHearingDist = BOT_RANGE_EXTENDED;
 	float volume = 1.0f - (dist / maxHearingDist);
 	if (volume < 0.0f) volume = 0.0f;
 	if (volume > 1.0f) volume = 1.0f;
-
 	g_pSoundSystem.get()->SetActionSoundVolume("mumbling", volume);
 	g_pSoundSystem.get()->SetActionSoundVolume("scream", volume);
-
 	if (dist <= m_flVisionRadius)
 	{
 		if (!g_pSoundSystem.get()->IsActionSoundPlaying("mumbling"))
@@ -76,7 +65,6 @@ void CBot::UpdateSounds(float flDeltaTime, float dist)
 		}
 	}
 }
-
 void CBot::UpdateMovement(float flDeltaTime)
 {
 	if (m_State == BOT_IDLE)
@@ -84,7 +72,6 @@ void CBot::UpdateMovement(float flDeltaTime)
 		m_State = BOT_PATROLLING;
 		SetRandomDirection();
 	}
-
 	if (m_State == BOT_HUNTING && m_pTarget)
 	{
 		Vector3 dir = Vector3Normalize(Vector3Subtract(m_pTarget->GetEntityPos(), GetEntityPos()));
@@ -96,7 +83,6 @@ void CBot::UpdateMovement(float flDeltaTime)
 		if (fabs(vel.x) < 0.1f && fabs(vel.z) < 0.1f) {
 			SetRandomDirection();
 		}
-
 		float distMoved = Vector3Distance(GetEntityPos(), m_vecLastPosition);
 		if (distMoved < m_flSpeed * flDeltaTime * 0.1f)
 		{
@@ -111,16 +97,39 @@ void CBot::UpdateMovement(float flDeltaTime)
 			m_flStuckTimer = 0.0f;
 		}
 	}
-
 	m_vecLastPosition = GetEntityPos();
 }
-
-void CBot::Draw()
+void CBot::Init()
 {
-	DrawCube(GetEntityPos(), 0.6f, GetHeight(), 0.6f, RED);
-	DrawCubeWires(GetEntityPos(), 0.6f, GetHeight(), 0.6f, MAROON);
+	m_TexBabka = LoadTexture("assets/bot/babka.png");
 }
 
+CBot::~CBot()
+{
+	if (m_TexBabka.id != 0) {
+		UnloadTexture(m_TexBabka);
+	}
+}
+
+void CBot::Draw(Camera3D& camera)
+{
+	if (m_TexBabka.id != 0) {
+		// Calculate center position (shift up by half height)
+		Vector3 centerPos = GetEntityPos();
+		centerPos.y += GetHeight() / 2.0f;
+		
+		// Use DrawBillboardRec to maintain aspect ratio
+		Rectangle source = { 0.0f, 0.0f, (float)m_TexBabka.width, (float)m_TexBabka.height };
+		float aspect = (float)m_TexBabka.width / (float)m_TexBabka.height;
+		Vector2 size = { GetHeight() * aspect, GetHeight() };
+		
+		DrawBillboardRec(camera, m_TexBabka, source, centerPos, size, WHITE);
+	} else {
+		// Fallback to red cube
+		DrawCube(GetEntityPos(), 0.6f, GetHeight(), 0.6f, RED);
+		DrawCubeWires(GetEntityPos(), 0.6f, GetHeight(), 0.6f, MAROON);
+	}
+}
 void CBot::SetRandomDirection()
 {
 	float randomAngle = GetRandomValue(0, 360) * DEG2RAD;
